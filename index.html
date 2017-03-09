@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>轮播图01</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        #outer {
+            width: 1000px;
+            height: 300px;
+            position: relative;
+            margin: 30px auto;
+            overflow: hidden;
+        }
+
+        #inner {
+            width: 4000px;
+            height: 300px;
+            position: absolute;
+            left: 0;
+        }
+
+        #inner li {
+            float: left;
+            width: 1000px;
+            height: 300px;
+            text-align: center;
+            line-height: 300px;
+            background: #e1e1e1;
+        }
+
+        #btn {
+            position: absolute;
+            right: 40px;
+            bottom: 30px;
+            z-index: 10;
+        }
+
+        #btn span {
+            width: 25px;
+            height: 25px;
+            text-align: center;
+            line-height: 25px;
+            border-radius: 25px;
+            background: pink;
+            margin-left: 10px;
+            float: left;
+            cursor: pointer;
+        }
+
+        #btn .bg {
+            background: lightgreen;
+        }
+
+        .btn button {
+            border: 0;
+            width: 40px;
+            text-align: center;
+            height: 50px;
+            line-height: 50px;
+            font-size: 50px;
+            position: absolute;
+            top: 40%;
+            background: #000;
+            opacity: 0.5;
+            color: #fff;
+            z-index: 10;
+            cursor: pointer;
+            outline: none;
+        }
+
+        #btnRight {
+            right: 0;
+        }
+
+    </style>
+</head>
+<body>
+<div id="outer">
+    <ul id="inner">
+        <!--<li><img src="img/banner1.jpg"></li>
+        <li><img src="img/banner2.jpg"></li>
+        <li><img src="img/banner3.jpg"></li>
+        <li><img src="img/banner4.jpg"></li>-->
+    </ul>
+    <div id="btn">
+        <!--<span class="bg">1</span>
+        <span>2</span>
+        <span>3</span>
+        <span>4</span>-->
+    </div>
+    <div class="btn">
+        <button id="btnLeft"><</button>
+        <button id="btnRight">></button>
+    </div>
+</div>
+<script src="js/utils.js"></script>
+<script src="js/animate.js"></script>
+<script>
+    var oOuter = document.getElementById("outer");
+    var oBtnLeft = document.getElementById("btnLeft");
+    var oBtnRight = document.getElementById("btnRight");
+    var oInner = document.getElementById("inner");
+    var oLis = oInner.getElementsByTagName("li");
+    var oBtn = document.getElementById("btn");
+    var oSpans = oBtn.getElementsByTagName("span");
+    var data = null;
+    var oImgs=oInner.getElementsByTagName("img")
+
+    //    1.数据分析
+    getData();
+    function getData() {
+        var xml = new XMLHttpRequest();
+        xml.open("get", "json/data.txt", false);
+        xml.onreadystatechange = function () {
+            data = utils.jsonParse(xml.responseText);
+        }
+        xml.send(null);
+    }
+    //2.数据绑定
+    bind();
+    function bind() {
+        var str = "";
+        var str2 = "";
+        for (var i = 0; i < 4; i++) {
+            var curData = data[i];
+            str += '<li><img src="img/default.gif" realImg="' + curData.imgSrc + '"></li>';
+
+            str2 += i == 0 ? '<span class="bg"></span>' : '<span></span>';
+        }
+        str+='<li><img src="img/default.gif" realImg="' + data[0].imgSrc + '"></li>'
+
+        oInner.innerHTML += str;
+        oBtn.innerHTML += str2;
+    }
+//    3.懒加载
+    lazyLoad();
+    function lazyLoad(){
+        for(var i=0;i<oImgs.length;i++){
+
+            (function (i){
+                var curImg=oImgs[i];
+                var newImg=new Image;
+                newImg.src=curImg.getAttribute("realImg");
+                newImg.onload=function(){
+                    curImg.src=this.src;
+                    newImg=null;
+                }
+            })(i)
+
+        }
+
+
+    }
+
+
+    //    4.自动轮播
+   /* var first = oLis[0].cloneNode(true);
+    oInner.appendChild(first);*/
+    var interval = 2000;
+
+    var timer = null;
+    var step = 0;
+
+    oInner.style.width = oInner.offsetWidth + oLis[0].offsetWidth + "px";
+    function autoLeft() {
+        step++;
+        if (step > 4) {
+            oInner.style.left = 0;
+            step = 1;
+        }
+        animate(oInner, {"left": -1000 * step}, 600)
+        if (step == 4) {
+            bannerTip(0);
+        } else {
+            bannerTip(step);
+        }
+    }
+    timer = window.setInterval(autoLeft, interval)
+    function autoRight() {
+        step--;
+        if (step < 0) {
+            oInner.style.left = "-4000px";
+            step = 3;
+        }
+        animate(oInner, {"left": -1000 * step}, 600)
+        if (step == -1) {
+            bannerTip(3);
+        } else {
+            bannerTip(step)
+        }
+    }
+
+    //   5.焦点添加className
+    function bannerTip(n) {
+        for (var i = 0; i < oSpans.length; i++) {
+            oSpans[i].className = "";
+        }
+        oSpans[n].className = "bg";
+    }
+    //    3.点击焦点同步轮播
+    for (var i = 0; i < oSpans.length; i++) {
+        oSpans[i].index = i;
+        oSpans[i].onclick = function () {
+            clearInterval(timer)
+            bannerTip(this.index);
+            animate(oInner, {"left": -1000 * this.index}, 600)
+            step = this.index
+            timer = window.setInterval(autoLeft, interval)
+
+        }
+
+    }
+    //6.点击箭头切换方向轮播
+    oBtnLeft.onclick = function () {
+        clearInterval(timer);
+        autoLeft();
+        timer = window.setInterval(autoLeft, interval);
+    }
+    oBtnRight.onclick = function () {
+        clearInterval(timer);
+        autoRight();
+        timer = window.setInterval(autoRight, interval);
+    }
+
+
+</script>
+</body>
+</html>
